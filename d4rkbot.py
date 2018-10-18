@@ -70,7 +70,7 @@ async def on_message(message):
         await client.send_message(message.channel, '---------AJUDA--------- \n'
                                                    '-moeda - Jogar cara/coroa comigo \n'
                                                    '-entrar - Entro no teu canal de voz \n'
-                                                   '-sair - Saio do canal de voz em que ele está \n'
+                                                   '-sair - Saio do canal de voz em que estou \n'
                                                    '-play - Procura uma música no youtube e toca-a \n'
                                                    '-pause - Pausa a música que estiver a dar \n'
                                                    '-resume - Tira o pause da música\n'
