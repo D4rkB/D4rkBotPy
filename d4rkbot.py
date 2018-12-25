@@ -9,8 +9,8 @@ musicatual = ''
 
 async def check_queue(id, sv, message):
     global musicatual
+    del queue[0]
     if len(queue) != 1:
-        del queue[0]
         voice = client.voice_client_in(sv)
         player = await voice.create_ytdl_player(queue[0])
         players[id].stop()
@@ -28,9 +28,10 @@ async def check_queue(id, sv, message):
         await asyncio.sleep(player.duration)
         await check_queue(id, sv, message)
     else:
-        del queue[0]
         can = client.voice_client_in(sv)
-        await asyncio.sleep(10)
+        players[id].stop()
+        canal = client.get_channel('498504505336266752')
+        await client.send_message(canal, "Não há nenhuma música na fila de espera por isso, saí do canal de voz!")
         await can.disconnect()
 
 
@@ -220,9 +221,8 @@ async def on_message(message):
             color=COR,
             description='Linguagem de programação usada - **Python 3.6**\n'
                         'Bibliotecas usadas - **discord.py**, **random**, **asyncio**\n'
-                        'Autor - **D4rkB**\n'
-                        #'Curiosidade: Linhas de código - **228** e a aumentar.. :D\n'
+                        'Autor - **D4rkB**\n'                                              
                         '-help para **ver todos os comandos**'
         )
         await client.send_message(message.channel, embed=mscinfo)
-client.run('TOKEN')
+client.run(TOKEN)
