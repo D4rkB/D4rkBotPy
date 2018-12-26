@@ -260,8 +260,7 @@ async def on_message(message):
     elif message.content.lower().startswith('-clear') or message.content.lower().startswith('-limpar'):
         cmd = message.content.split()
         if len(cmd) == 1:
-            await client.send_message(message.channel, '**Usa**: -clear <nº de mensagens para limpar/all para limpar '
-                                                       'todas')
+            await client.send_message(message.channel, '**Usa**: -clear <nº de mensagens para limpar>')
             return
         try:
             amount = int(cmd[1]) + 1 if len(cmd) > 1 else 2
