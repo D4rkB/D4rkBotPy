@@ -10,7 +10,7 @@ musicatual = ''
 async def check_queue(id, sv, message):
     global musicatual
     del queue[0]
-    if len(queue) != 1:
+    if len(queue) != 0:
         voice = client.voice_client_in(sv)
         player = await voice.create_ytdl_player(queue[0])
         players[id].stop()
