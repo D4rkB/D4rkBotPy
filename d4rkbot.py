@@ -1,4 +1,4 @@
-import discord, random, asyncio
+import discord, random, asyncio, youtube_dl
 
 client = discord.Client()
 players = {}
@@ -26,7 +26,7 @@ async def check_queue(id, sv, message):
                 description='A música **{}** foi pulada e agora está a tocar a música **{}**'.format(matual, musicatual)
             )
             await client.send_message(message.channel, embed=mscskip)
-        await asyncio.sleep(player.duration)
+        await asyncio.sleep(player.duration + 3)
         await check_queue(id, sv, message)
     else:
         can = client.voice_client_in(sv)
@@ -53,14 +53,14 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member):
-    canal = client.get_channel('498504505336266752')
+    canal = client.get_channel('530170643149357057')
     msg = f'Bem Vindo! {member.mention}'
     await client.send_message(canal, msg)
 
 
 @client.event
 async def on_member_remove(member):
-    canal = client.get_channel('498504505336266752')
+    canal = client.get_channel('530170643149357057')
     msg = f'Adeus! {member.mention}'
     await client.send_message(canal, msg)
 
@@ -83,7 +83,7 @@ async def on_message(message):
                         '-clear <número> - Apaga um determinado nº de mensagens\n'
                         '-kick <nome/id> <motivo> - Kicka alguém (em desenvolvimento)\n'
                         '-ban <nome/id> <motivo> - Bane alguém (em desenvolvimento)\n'
-                        '-invite - Cria um link de convite do servidor (em desenvolvimento)'
+                        '-invite - Cria um link de convite do servidor'
         )
         await client.send_message(message.channel, embed=mschelp)
     elif message.content.lower() == '-moeda':
@@ -113,7 +113,6 @@ async def on_message(message):
             yt_url = message.content[6:]
         else:
             yt_url = message.content[3:]
-        await client.send_message(message.channel, f'**A procurar** `{yt_url}`  :mag:')
         if client.is_voice_connected(message.server):
             try:
                 voice = client.voice_client_in(message.server)
@@ -123,6 +122,7 @@ async def on_message(message):
                 else:
                     player = await voice.create_ytdl_player('ytsearch: {}'.format(yt_url))
                     queue.append('ytsearch: {}'.format(yt_url))
+                await client.send_message(message.channel, f'**A procurar** `{yt_url}`  :mag:')
                 if len(queue) == 0:
                     players[message.server.id].stop()
                     players[message.server.id] = player
@@ -155,8 +155,10 @@ async def on_message(message):
                     await client.send_message(message.channel, embed=mscemb3)
             except discord.InvalidArgument:
                 await client.send_message(message.channel, 'Precisas de estar num canal de voz para usar este comando!')
+            except youtube_dl.utils.ExtractorError:
+                await client.send_message(message.channel, 'Atualiza o youtube-dl!')
             except Exception as e:
-                    await client.send_message(message.server, "Erro: [{error}]".format(error=e))
+                await client.send_message(message.server, "Erro: [{error}]".format(error=e))
 
         if not client.is_voice_connected(message.server):
             try:
@@ -170,6 +172,7 @@ async def on_message(message):
                     queue.append('ytsearch: {}'.format(yt_url))
                 players[message.server.id] = player
                 player.start()
+                await client.send_message(message.channel, f'**A procurar** `{yt_url}`  :mag:')
                 musicatual = player.title
                 mscemb2 = discord.Embed(
                     title="Música para tocar:",
@@ -183,11 +186,13 @@ async def on_message(message):
                 mscemb2.add_field(name="Likes:", value="`{}`".format(player.likes))
                 mscemb2.add_field(name="Dislikes:", value="`{}`".format(player.dislikes))
                 await client.send_message(message.channel, embed=mscemb2)
-                await asyncio.sleep(player.duration)
+                await asyncio.sleep(player.duration + 3)
                 if musicatual == player.title:
                     await check_queue(message.server.id, message.server, message)
             except discord.InvalidArgument:
                 await client.send_message(message.channel, 'Precisas de estar num canal de voz para usar este comando!')
+            except youtube_dl.utils.ExtractorError:
+                await client.send_message(message.channel, 'Atualiza o youtube-dl!')
             except Exception as error:
                 await client.send_message(message.channel, "Erro: [{error}]".format(error=error))
     elif message.content.lower().startswith('-pause'):
@@ -238,7 +243,7 @@ async def on_message(message):
                         '-help para **ver todos os comandos**'
         )
         await client.send_message(message.channel, embed=mscinfo)
-    '''elif message.content.lower().startswith('-kick'):
+    elif message.content.lower().startswith('-kick'):
         if len(message.content.lower()) <= 6:
             await client.send_message(message.channel, '**Usa**: -kick <nome/id> <razão>')
             return
@@ -253,10 +258,24 @@ async def on_message(message):
             return
         await client.kick(reason.join(cmd[2:]), kicked)
         await client.send_message(message.channel, f'O {kicked} foi kickado pelo {kicker}\n'
-                                                  f'**Motivo**: {reason.join(cmd[2:])}')'''
+                                                  f'**Motivo**: {reason.join(cmd[2:])}')
     #elif message.content.lower().startswith('-ban'):
     #elif message.content.lower().startswith('-unban'):
-    #elif message.content.lower().startswith('-invite') or message.content.lower().startswith('-convite'):
+    elif message.content.lower().startswith('-invite') or message.content.lower().startswith('-convite'):
+        cmd = message.content.split()
+        try:
+            if len(cmd) == 1:
+                await client.send_message(message.channel, '**Usa**: -invite <duração do convite (0 é ilimitado)> ')
+            else:
+                invite = await client.create_invite(message.channel, max_age=int(cmd[1])*3600)
+                if int(cmd[1]) == 0:
+                    await client.send_message(message.channel, f'Convite criado com duração ilimitada: Link: {invite}')
+                else:
+                    await client.send_message(message.channel, f'Convite criado por {cmd[1]} hora(s)! Link: {invite}')
+        except discord.HTTPException:
+            await client.send_message(message.channel, 'Erro ao criar o convite. :frowning2:')
+        except discord.errors.HTTPException:
+            await client.send_message(message.channel, 'Introduz um valor válido!')
     elif message.content.lower().startswith('-clear') or message.content.lower().startswith('-limpar'):
         cmd = message.content.split()
         if len(cmd) == 1:
@@ -267,6 +286,8 @@ async def on_message(message):
         except Exception:
             await client.send_message(message.channel, 'Introduz um valor válido!')
             return
+        except discord.errors.HTTPException:
+            await client.send_message(message.channel, 'Não podes apagar mensagens com mais de 14 dias')
         messages = list()
         async for m in client.logs_from(message.channel, limit=amount):
             messages.append(m)
