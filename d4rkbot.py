@@ -31,7 +31,7 @@ async def check_queue(id, sv, message):
     else:
         can = client.voice_client_in(sv)
         players[id].stop()
-        canal = client.get_channel('498504505336266752')
+        canal = client.get_channel('ID')
         await client.send_message(canal, "Não há nenhuma música na fila de espera por isso, saí do canal de voz!")
         await can.disconnect()
 
@@ -53,14 +53,14 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member):
-    canal = client.get_channel('530170643149357057')
+    canal = client.get_channel('ID')
     msg = f'Bem Vindo! {member.mention}'
     await client.send_message(canal, msg)
 
 
 @client.event
 async def on_member_remove(member):
-    canal = client.get_channel('530170643149357057')
+    canal = client.get_channel('ID')
     msg = f'Adeus! {member.mention}'
     await client.send_message(canal, msg)
 
@@ -81,8 +81,9 @@ async def on_message(message):
                         '-skip - Salta a música\n'
                         '-info - Informações sobre mim\n'
                         '-clear <número> - Apaga um determinado nº de mensagens\n'
-                        '-kick <nome/id> <motivo> - Kicka alguém (em desenvolvimento)\n'
-                        '-ban <nome/id> <motivo> - Bane alguém (em desenvolvimento)\n'
+                        '-kick @<nome> - Kicka alguém\n'
+                        '-ban @<nome> - Bane alguém\n'
+                        '-unban @<nome> - Tira o ban a alguém\n'
                         '-invite - Cria um link de convite do servidor'
         )
         await client.send_message(message.channel, embed=mschelp)
@@ -245,22 +246,56 @@ async def on_message(message):
         await client.send_message(message.channel, embed=mscinfo)
     elif message.content.lower().startswith('-kick'):
         if len(message.content.lower()) <= 6:
-            await client.send_message(message.channel, '**Usa**: -kick <nome/id> <razão>')
+            await client.send_message(message.channel, '**Usa**: -kick <@nome>')
             return
         cmd = message.content.split()
-        reason = ' '
         kicker = message.author
         kicked = cmd[1]
-        #for cmd[1] in client.server."peoplelist"
-        if len(cmd) == 2:
-            await client.kick(kicked)
-            await client.send_message(message.channel, f'O {kicked} foi kickado pelo {kicker}')
+        try:
+            if len(cmd) == 2:
+                await client.kick(message.server.get_member(kicked[2:-1]))
+                await client.send_message(message.channel, f'O {kicked} foi kickado pelo {kicker.mention}.')
+        except discord.Forbidden:
+            await client.send_message(message.channel, f'Não tens permissão para kickar o {kicked}.')
+        except discord.HTTPException:
+            await client.send_message(message.channel, 'Erro ao kickar. :frowning2:')
+        except AttributeError:
+            await client.send_message(message.channel, 'Utilizador não encontrado. :frowning2:')
+    elif message.content.lower().startswith('-ban'):
+        if len(message.content.lower()) <= 5:
+            await client.send_message(message.channel, '**Usa**: -ban <@nome>')
             return
-        await client.kick(reason.join(cmd[2:]), kicked)
-        await client.send_message(message.channel, f'O {kicked} foi kickado pelo {kicker}\n'
-                                                  f'**Motivo**: {reason.join(cmd[2:])}')
-    #elif message.content.lower().startswith('-ban'):
-    #elif message.content.lower().startswith('-unban'):
+        cmd = message.content.split()
+        banner = message.author
+        banned = cmd[1]
+        try:
+            if len(cmd) == 2:
+                await client.ban(message.server.get_member(banned[2:-1]), 0)
+                await client.send_message(message.channel, f'O {banned} foi banido pelo {banner.mention}.')
+        except discord.Forbidden:
+            await client.send_message(message.channel, f'Não tens permissão para banir o {banned}')
+        except discord.HTTPException:
+            await client.send_message(message.channel, 'Erro ao banir. :frowning2:')
+        except AttributeError:
+            await client.send_message(message.channel, 'Utilizador não encontrado :frowning2:')
+    elif message.content.lower().startswith('-unban'):
+        if len(message.content.lower()) <= 7:
+            await client.send_message(message.channel, '**Usa**: -unban ')
+            return
+        cmd = message.content.split()
+        unbanner = message.author
+        unbanned = cmd[1]
+        unbanned2 = await client.get_user_info(unbanned[2:-1])
+        try:
+            if len(cmd) == 2:
+                await client.unban(message.server, unbanned2)
+                await client.send_message(message.channel, f'O {unbanned} foi desbanido pelo {unbanner.mention}.')
+        except discord.Forbidden:
+            await client.send_message(message.channel, f'Não tens permissão para banir o {unbanned}')
+        except discord.HTTPException:
+            await client.send_message(message.channel, 'Erro ao banir. :frowning2:')
+        except AttributeError:
+            await client.send_message(message.channel, 'Utilizador não encontrado :frowning2:')
     elif message.content.lower().startswith('-invite') or message.content.lower().startswith('-convite'):
         cmd = message.content.split()
         try:
@@ -288,6 +323,9 @@ async def on_message(message):
             return
         except discord.errors.HTTPException:
             await client.send_message(message.channel, 'Não podes apagar mensagens com mais de 14 dias')
+            return
+        except discord.errors.ClientException:
+            await client.send_message(message.channel, 'Só podes apagar entre 1 a 99 mensagens!')
         messages = list()
         async for m in client.logs_from(message.channel, limit=amount):
             messages.append(m)
@@ -298,4 +336,4 @@ async def on_message(message):
             description=f'Foram apagadas {amount} mensagens!'
         )
         await client.send_message(message.channel, embed=mscclear)
-client.run(TOKEN)
+client.run('TOKEN')
