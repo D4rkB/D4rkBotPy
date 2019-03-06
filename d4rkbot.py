@@ -1,4 +1,4 @@
-import discord, random, asyncio, youtube_dl
+import discord, random, asyncio, youtube_dl, time
 
 client = discord.Client()
 players = {}
@@ -31,8 +31,6 @@ async def check_queue(id, sv, message):
     else:
         can = client.voice_client_in(sv)
         players[id].stop()
-        canal = client.get_channel('ID')
-        await client.send_message(canal, "Não há nenhuma música na fila de espera por isso, saí do canal de voz!")
         await can.disconnect()
 
 
@@ -73,6 +71,7 @@ async def on_message(message):
             title='---------------------Ajuda---------------------',
             color=randcor(),
             description='-moeda - Jogar cara/coroa comigo \n'
+                        '-ping - Vê o meu ping\n'
                         '-entrar - Entro no teu canal de voz \n'
                         '-sair - Saio do canal de voz em que estou \n'
                         '-play - Procura uma música no youtube e toca-a \n'
@@ -84,7 +83,9 @@ async def on_message(message):
                         '-kick @<nome> - Kicka alguém\n'
                         '-ban @<nome> - Bane alguém\n'
                         '-unban @<nome> - Tira o ban a alguém\n'
-                        '-invite - Cria um link de convite do servidor'
+                        '-invite - Cria um link de convite do servidor\n'
+                        '-sugestao - Envia uma sugestao\n'
+                        '-bugs - Reporta algum bug do bot'
         )
         await client.send_message(message.channel, embed=mschelp)
     elif message.content.lower() == '-moeda':
@@ -162,6 +163,12 @@ async def on_message(message):
                 await client.send_message(message.server, "Erro: [{error}]".format(error=e))
 
         if not client.is_voice_connected(message.server):
+            if len(queue) != 0:
+                if yt_url.startswith('http'):
+                    queue.append(yt_url)
+                else:
+                    queue.append('ytsearch: {}'.format(yt_url))
+                return
             try:
                 channel = message.author.voice.voice_channel
                 voice = await client.join_voice_channel(channel)
@@ -195,7 +202,7 @@ async def on_message(message):
             except youtube_dl.utils.ExtractorError:
                 await client.send_message(message.channel, 'Atualiza o youtube-dl!')
             except Exception as error:
-                await client.send_message(message.channel, "Erro: [{error}]".format(error=error))
+                await client.send_message(message.channel, f"Erro: [{error}]")
     elif message.content.lower().startswith('-pause'):
         try:
             players[message.server.id].pause()
@@ -208,7 +215,7 @@ async def on_message(message):
         except KeyError:
             await client.send_message(message.channel, "Não há nenhuma música a tocar!")
         except Exception as error:
-            await client.send_message(message.channel, "Erro: [{error}]".format(error=error))
+            await client.send_message(message.channel, f"Erro: [{error}]")
     elif message.content.lower().startswith('-resume'):
         if client.is_voice_connected(message.server) and len(queue) != 0:
             try:
@@ -220,7 +227,7 @@ async def on_message(message):
                 await client.send_message(message.channel, embed=mscresume)
                 players[message.server.id].resume()
             except Exception as error:
-                await client.send_message(message.channel, "Erro: [{error}]".format(error=error))
+                await client.send_message(message.channel, f"Erro: [{error}]")
         else:
             mcresume2 = discord.Embed(
                 title="\n",
@@ -240,50 +247,58 @@ async def on_message(message):
             color=COR,
             description='Linguagem de programação usada - **Python 3.6**\n'
                         'Bibliotecas usadas - **discord.py**, **random**, **asyncio**\n'
-                        'Autor - **D4rkB**\n'                                              
+                        'Autor - **D4rkB**\n'
+                        'Meu source-code: **https://github.com/D4rkB/D4rkBotPy/blob/master/d4rkbot.py**\n'                                              
                         '-help para **ver todos os comandos**'
         )
         await client.send_message(message.channel, embed=mscinfo)
     elif message.content.lower().startswith('-kick'):
+        kicker = message.author
+        if not kicker.server_permissions.kick_members:
+            await client.send_message(message.channel, 'Não tens permissão :frowning2:')
+            return
         if len(message.content.lower()) <= 6:
             await client.send_message(message.channel, '**Usa**: -kick <@nome>')
             return
         cmd = message.content.split()
-        kicker = message.author
         kicked = cmd[1]
         try:
             if len(cmd) == 2:
                 await client.kick(message.server.get_member(kicked[2:-1]))
                 await client.send_message(message.channel, f'O {kicked} foi kickado pelo {kicker.mention}.')
         except discord.Forbidden:
-            await client.send_message(message.channel, f'Não tens permissão para kickar o {kicked}.')
+            await client.send_message(message.channel, f'Não tenho permissão para kickar o {kicked}.')
         except discord.HTTPException:
             await client.send_message(message.channel, 'Erro ao kickar. :frowning2:')
         except AttributeError:
             await client.send_message(message.channel, 'Utilizador não encontrado. :frowning2:')
     elif message.content.lower().startswith('-ban'):
+        banner = message.author
+        if not banner.server_permissions.ban_members:
+            await client.send_message(message.channel, 'Não tens permissão :frowning2:')
         if len(message.content.lower()) <= 5:
             await client.send_message(message.channel, '**Usa**: -ban <@nome>')
             return
         cmd = message.content.split()
-        banner = message.author
         banned = cmd[1]
         try:
             if len(cmd) == 2:
                 await client.ban(message.server.get_member(banned[2:-1]), 0)
                 await client.send_message(message.channel, f'O {banned} foi banido pelo {banner.mention}.')
         except discord.Forbidden:
-            await client.send_message(message.channel, f'Não tens permissão para banir o {banned}')
+            await client.send_message(message.channel, f'Não tenho permissão para banir o {banned}')
         except discord.HTTPException:
             await client.send_message(message.channel, 'Erro ao banir. :frowning2:')
         except AttributeError:
             await client.send_message(message.channel, 'Utilizador não encontrado :frowning2:')
     elif message.content.lower().startswith('-unban'):
+        unbanner = message.author
+        if not unbanner.server_permissions.ban_members:
+            await client.send_message(message.channel, 'Não tens permissão :frowning2:')
         if len(message.content.lower()) <= 7:
-            await client.send_message(message.channel, '**Usa**: -unban ')
+            await client.send_message(message.channel, '**Usa**: -unban <@nome>')
             return
         cmd = message.content.split()
-        unbanner = message.author
         unbanned = cmd[1]
         unbanned2 = await client.get_user_info(unbanned[2:-1])
         try:
@@ -312,6 +327,8 @@ async def on_message(message):
         except discord.errors.HTTPException:
             await client.send_message(message.channel, 'Introduz um valor válido!')
     elif message.content.lower().startswith('-clear') or message.content.lower().startswith('-limpar'):
+        if not message.author.server_permissions.manage_messages:
+            await client.send_message(message.channel, 'Não tens permissão :frowning2:')
         cmd = message.content.split()
         if len(cmd) == 1:
             await client.send_message(message.channel, '**Usa**: -clear <nº de mensagens para limpar>')
@@ -336,4 +353,25 @@ async def on_message(message):
             description=f'Foram apagadas {amount} mensagens!'
         )
         await client.send_message(message.channel, embed=mscclear)
+    elif message.content.lower().startswith('-ping'):
+        time1 = time.monotonic()
+        message1 = await client.send_message(message.channel, 'A calcular o ping....')
+        ping = (time.monotonic() - time1) * 1000
+        await client.edit_message(message1, f'O meu ping é de {round(ping/2)}ms.')
+    elif message.content.lower().startswith('-sugestao'):
+        sugestao = message.content.lower().split()
+        if len(sugestao) == 1:
+            await client.send_message(message.channel, '**Usa**: -sugestao <sugestao>')
+            return
+        canal = await client.get_user_info('334054158879686657')
+        await client.send_message(canal, ' '.join(sugestao[1:]))
+        await client.send_message(message.channel, 'Sugestão registada! Obrigado. :grinning:')
+    elif message.content.lower().startswith('-bug'):
+        bug = message.content.lower().split()
+        if len(bug) == 1:
+            await client.send_message(message.channel, '**Usa**: -bugs <bug>')
+            return
+        canal = await client.get_user_info('334054158879686657')
+        await client.send_message(canal, ' '.join(bug[1:]))
+        await client.send_message(message.channel, 'Bug reportado! Obrigado. :grinning:')
 client.run('TOKEN')
