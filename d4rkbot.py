@@ -51,14 +51,14 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member):
-    canal = client.get_channel('ID')
+    canal = client.get_channel(ID)
     msg = f'Bem Vindo! {member.mention}'
     await client.send_message(canal, msg)
 
 
 @client.event
 async def on_member_remove(member):
-    canal = client.get_channel('ID')
+    canal = client.get_channel(ID)
     msg = f'Adeus! {member.mention}'
     await client.send_message(canal, msg)
 
@@ -88,6 +88,7 @@ async def on_message(message):
                         '-bugs - Reporta algum bug do bot'
         )
         await client.send_message(message.channel, embed=mschelp)
+
     elif message.content.lower() == '-moeda':
         choice = random.randint(1, 2)
         if choice == 1:
@@ -109,7 +110,9 @@ async def on_message(message):
             queue.clear()
         except AttributeError:
             await client.send_message(message.channel, 'Eu não estou em nenhum canal de voz!')
-
+            
+    elif message.content.lower() == '-play' or message.content.lower() == '-p':
+            await client.send_message(message.channel, '**Use:** -play <musica/url>') 
     elif message.content.lower().startswith('-play ') or message.content.lower().startswith('-p '):
         if message.content.lower().startswith('-play'):
             yt_url = message.content[6:]
@@ -216,6 +219,7 @@ async def on_message(message):
             await client.send_message(message.channel, "Não há nenhuma música a tocar!")
         except Exception as error:
             await client.send_message(message.channel, f"Erro: [{error}]")
+            
     elif message.content.lower().startswith('-resume'):
         if client.is_voice_connected(message.server) and len(queue) != 0:
             try:
@@ -272,6 +276,7 @@ async def on_message(message):
             await client.send_message(message.channel, 'Erro ao kickar. :frowning2:')
         except AttributeError:
             await client.send_message(message.channel, 'Utilizador não encontrado. :frowning2:')
+            
     elif message.content.lower().startswith('-ban'):
         banner = message.author
         if not banner.server_permissions.ban_members:
@@ -311,6 +316,7 @@ async def on_message(message):
             await client.send_message(message.channel, 'Erro ao banir. :frowning2:')
         except AttributeError:
             await client.send_message(message.channel, 'Utilizador não encontrado :frowning2:')
+
     elif message.content.lower().startswith('-invite') or message.content.lower().startswith('-convite'):
         cmd = message.content.split()
         try:
@@ -326,6 +332,7 @@ async def on_message(message):
             await client.send_message(message.channel, 'Erro ao criar o convite. :frowning2:')
         except discord.errors.HTTPException:
             await client.send_message(message.channel, 'Introduz um valor válido!')
+
     elif message.content.lower().startswith('-clear') or message.content.lower().startswith('-limpar'):
         if not message.author.server_permissions.manage_messages:
             await client.send_message(message.channel, 'Não tens permissão :frowning2:')
@@ -335,7 +342,17 @@ async def on_message(message):
             return
         try:
             amount = int(cmd[1]) + 1 if len(cmd) > 1 else 2
-        except Exception:
+            messages = list()
+            async for m in client.logs_from(message.channel, limit=amount):
+                messages.append(m)
+            await client.delete_messages(messages)
+            mscclear = discord.Embed(
+                title='Limpeza',
+                color=randcor(),
+                description=f'Foram apagadas {amount} mensagens!'
+            )
+            await client.send_message(message.channel, embed=mscclear)
+        except ValueError:
             await client.send_message(message.channel, 'Introduz um valor válido!')
             return
         except discord.errors.HTTPException:
@@ -343,21 +360,13 @@ async def on_message(message):
             return
         except discord.errors.ClientException:
             await client.send_message(message.channel, 'Só podes apagar entre 1 a 99 mensagens!')
-        messages = list()
-        async for m in client.logs_from(message.channel, limit=amount):
-            messages.append(m)
-        await client.delete_messages(messages)
-        mscclear = discord.Embed(
-            title='Limpeza',
-            color=randcor(),
-            description=f'Foram apagadas {amount} mensagens!'
-        )
-        await client.send_message(message.channel, embed=mscclear)
+        
     elif message.content.lower().startswith('-ping'):
         time1 = time.monotonic()
         message1 = await client.send_message(message.channel, 'A calcular o ping....')
         ping = (time.monotonic() - time1) * 1000
         await client.edit_message(message1, f'O meu ping é de {round(ping/2)}ms.')
+
     elif message.content.lower().startswith('-sugestao'):
         sugestao = message.content.lower().split()
         if len(sugestao) == 1:
@@ -366,6 +375,7 @@ async def on_message(message):
         canal = await client.get_user_info('334054158879686657')
         await client.send_message(canal, ' '.join(sugestao[1:]))
         await client.send_message(message.channel, 'Sugestão registada! Obrigado. :grinning:')
+
     elif message.content.lower().startswith('-bug'):
         bug = message.content.lower().split()
         if len(bug) == 1:
@@ -374,4 +384,4 @@ async def on_message(message):
         canal = await client.get_user_info('334054158879686657')
         await client.send_message(canal, ' '.join(bug[1:]))
         await client.send_message(message.channel, 'Bug reportado! Obrigado. :grinning:')
-client.run('TOKEN')
+client.run(TOKEN)
